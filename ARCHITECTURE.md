@@ -1,0 +1,1 @@
+Documentacion detallada de la arquitectura
