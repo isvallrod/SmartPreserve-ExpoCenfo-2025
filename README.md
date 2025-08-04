@@ -43,6 +43,8 @@ Desarrollar un sistema IoT inteligente que monitorice el estado de alimentos alm
 
 ### Arquitectura MCP
 
+![Diagrama del Sistema](SmartPreserve_Edge_Diagrama.png)
+
 ### Componentes
 
 - **Microcontrolador:** IdeaBoard ESP32
