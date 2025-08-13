@@ -2,23 +2,34 @@ import { type NextRequest, NextResponse } from "next/server"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 
+/**
+ * API Route para análisis de datos de sensores usando IA
+ * Endpoint: POST /api/analyze
+ *
+ * Recibe datos de sensores ESP32 y los analiza usando OpenAI GPT-4
+ * para proporcionar insights sobre las condiciones ambientales
+ */
 export async function POST(request: NextRequest) {
   try {
+    // Extraer datos del cuerpo de la petición
     const { sensorData } = await request.json()
 
+    // Validar que existan datos para analizar
     if (!sensorData || sensorData.length === 0) {
       return NextResponse.json({ error: "No hay datos para analizar" }, { status: 400 })
     }
 
-    // Preparar datos para el análisis
+    // Preparar datos para el análisis de IA
+    // Extraemos solo los campos relevantes para el análisis
     const dataForAnalysis = sensorData.map((data: any) => ({
-      lightLevel: data.lightLevel,
-      temperature: data.temperature,
-      humidity: data.humidity,
-      voltage: data.voltage,
-      timestamp: data.timestamp,
+      lightLevel: data.lightLevel, // Nivel de luz del sensor LDR
+      temperature: data.temperature, // Temperatura del DHT11
+      humidity: data.humidity, // Humedad del DHT11
+      voltage: data.voltage, // Voltaje de alimentación
+      timestamp: data.timestamp, // Marca de tiempo
     }))
 
+    // Prompt detallado para la IA con contexto específico del sistema ESP32
     const prompt = `
 Eres un experto en análisis de datos IoT y sensores ESP32. Analiza los siguientes datos de sensores:
 
@@ -52,14 +63,15 @@ Responde ÚNICAMENTE en formato JSON válido con esta estructura exacta:
 Asegúrate de que sea JSON válido sin texto adicional.
 `
 
+    // Llamada a la API de OpenAI para generar el análisis
     const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      prompt: prompt,
-      temperature: 0.3,
-      maxTokens: 1000,
+      model: openai("gpt-4o-mini"), // Modelo GPT-4 optimizado
+      prompt: prompt, // Prompt con contexto específico
+      temperature: 0.3, // Baja temperatura para respuestas más consistentes
+      maxTokens: 1000, // Límite de tokens para la respuesta
     })
 
-    // Intentar parsear la respuesta JSON
+    // Intentar parsear la respuesta JSON de la IA
     let analysis
     try {
       // Limpiar el texto para asegurar que sea JSON válido
@@ -79,16 +91,18 @@ Asegúrate de que sea JSON válido sin texto adicional.
       }
     }
 
-    // Validar estructura
+    // Validar estructura del análisis y proporcionar valores por defecto
     if (!analysis.summary) analysis.summary = "Análisis completado"
     if (!Array.isArray(analysis.recommendations)) analysis.recommendations = []
     if (!Array.isArray(analysis.alerts)) analysis.alerts = []
 
+    // Devolver el análisis procesado
     return NextResponse.json({ analysis })
   } catch (error) {
     console.error("Error en análisis:", error)
 
     // Análisis de respaldo si falla la IA
+    // Esto asegura que la aplicación siga funcionando aunque OpenAI falle
     const fallbackAnalysis = {
       summary: "Sistema funcionando correctamente. Datos del sensor LDR recibidos y procesados.",
       recommendations: [
